@@ -1,0 +1,179 @@
+{% extends "page.html" %}
+{% block main %}
+<div class="container">
+  <h1 class="sr-only">Управление токенами JupyterHub</h1>
+  <div class="row justify-content-center">
+    <form id="request-token-form" class="col-lg-6">
+      <div class="form-group">
+        <label for="token-note" class="form-label">Примечание</label>
+        <input id="token-note" class="form-control" placeholder="примечание для идентификации вашего нового токена">
+        <small id="note-note" class="form-text">Это примечание поможет вам отслеживать, для чего предназначены ваши
+          токены.</small>
+        <br />
+        <label for="token-expiration-seconds" class="form-label">Токен истекает через</label>
+        {% block expiration_options %}
+        <select id="token-expiration-seconds" class="form-select">{{ token_expires_in_options_html | safe }}</select>
+        {% endblock expiration_options %}
+        <small id="note-expires-at" class="form-text">Вы можете настроить, когда истечет срок действия вашего
+          токена.</small>
+        <br />
+        <label for="token-scopes" class="form-label">Права доступа</label>
+        <input id="token-scopes" class="form-control"
+          placeholder="список областей действия токена, разделенные пробелом">
+        <small id="note-token-scopes" class="form-text">
+          Вы можете ограничить права токена, чтобы он мог выполнять только нужные вам действия.
+          Если права не указаны, токен будет иметь все права, которые есть у вас.
+          См. <a href="https://jupyterhub.readthedocs.io/en/stable/rbac/scopes.html#available-scopes">документацию
+            JupyterHub для списка доступных прав</a>.
+        </small>
+      </div>
+      <div class="text-center m-4">
+        <button type="submit" class="btn btn-lg btn-jupyter">Запросить новый API токен</button>
+      </div>
+    </form>
+  </div>
+  <div class="row justify-content-center">
+    <div id="token-area" class="col-lg-6" style="display: none;">
+      <div class="card">
+        <div class="card-header">Ваш новый API токен</div>
+        <div class="card-body">
+          <p class="card-title text-center">
+            <span id="token-result"></span>
+          </p>
+          <p class="card-text">
+            Скопируйте этот токен. Вы больше не сможете увидеть его,
+            но всегда можете вернуться сюда, чтобы получить новый.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if api_tokens %}
+  <div class="row" id="api-tokens-section">
+    <div class="col">
+      <h2>API Tokens</h2>
+      <p>
+        Это токены с доступом к API JupyterHub.
+        Права каждого токена можно просмотреть через API tokens JupyterHub.
+        Отзыв токена для запущенного сервера потребует перезапуска этого сервера.
+      </p>
+      <table class="table table-striped" id="api-tokens-table">
+        <thead>
+          <tr>
+            <th>Примечание</th>
+            <th>Права доступа</th>
+            <th>Последнее использование</th>
+            <th>Создан</th>
+            <th>Истекает</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for token in api_tokens %}
+          <tr class="token-row container" data-token-id="{{ token.api_id }}">
+            {% block token_row scoped %}
+            <td class="note-col col">{{ token.note }}</td>
+            <td class="scope-col col">
+              <details>
+                <summary>права доступа</summary>
+                {% for scope in token.scopes %}
+                <pre class="token-scope">{{ scope }}</pre>{% endfor %}
+              </details>
+            </td>
+            <td class="time-col col">
+              {%- if token.last_activity -%}
+              {{ token.last_activity.isoformat() + 'Z' }}
+              {%- else -%}
+              Никогда
+              {%- endif -%}
+            </td>
+            <td class="time-col col">
+              {%- if token.created -%}
+              {{ token.created.isoformat() + 'Z' }}
+              {%- else -%}
+              Н/Д
+              {%- endif -%}
+            </td>
+            <td class="time-col col">
+              {%- if token.expires_at -%}
+              {{ token.expires_at.isoformat() + 'Z' }}
+              {%- else -%}
+              Никогда
+              {%- endif -%}
+            </td>
+            <td class="col text-center">
+              <button class="revoke-token-btn btn btn-xs btn-danger">отозвать</button>
+            </td>
+            {% endblock token_row %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+  {% if oauth_clients %}
+  <div class="row" id="oauth-clients-section">
+    <h2>Авторизованные приложения</h2>
+    <p>
+      Это приложения, которые используют OAuth с JupyterHub
+      для идентификации пользователей (в основном серверы блокнотов).
+      Токены OAuth обычно могут использоваться только для вашей идентификации,
+      а не для выполнения действий от вашего имени.
+    </p>
+    <table class="table table-striped" id="oauth-tokens-table">
+      <thead>
+        <tr>
+          <th>Приложение</th>
+          <th>Права доступа</th>
+          <th>Последнее использование</th>
+          <th>Первая авторизация</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for client in oauth_clients %}
+        <tr class="token-row" data-token-id="{{ client['token_id'] }}">
+          {% block client_row scoped %}
+          <td class="note-col col-sm-4">{{ client['description'] }}</td>
+          <td class="scope-col col-sm-1">
+            <details>
+              <summary>права доступа</summary>
+              {# create set of scopes on all tokens -#}
+              {# sum concatenates all token.scopes into a single list -#}
+              {# then filter to unique set and sort -#}
+              {% for scope in client.tokens | sum(attribute="scopes", start=[]) | unique | sort %}
+              <pre class="token-scope">{{ scope }}</pre>
+              {% endfor %}
+            </details>
+          </td>
+          <td class="time-col col-sm-3">
+            {%- if client['last_activity'] -%}
+            {{ client['last_activity'].isoformat() + 'Z' }}
+            {%- else -%}
+            Никогда
+            {%- endif -%}
+          </td>
+          <td class="time-col col-sm-3">
+            {%- if client['created'] -%}
+            {{ client['created'].isoformat() + 'Z' }}
+            {%- else -%}
+            Н/Д
+            {%- endif -%}
+          </td>
+          <td class="col-sm-1 text-center">
+            <button class="revoke-token-btn btn btn-xs btn-danger">отозвать</button>
+          </td>
+          {% endblock client_row %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock main %}
+{% block script %}
+{{ super() }}
+<script type="text/javascript">
+  require(["token"]);
+</script>
+{% endblock script %}

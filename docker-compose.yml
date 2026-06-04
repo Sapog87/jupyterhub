@@ -1,0 +1,80 @@
+services:
+  reverse-proxy:
+    image: nginx:stable-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - backend
+      - frontend
+    restart: on-failure
+
+  jupyter:
+    build: ./server
+    ports:
+      - "8000:8000"
+    restart: on-failure
+    environment:
+      DB_USER: jupyterhub_admin
+      DB_PASSWORD: jupyterhub_password
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: jupyterhub_db
+      IP: compiler
+      PORT: 5000
+    volumes:
+      - ./server/js/admin-react.js:/usr/local/share/jupyterhub/static/js/admin-react.js:ro
+      - ./server/js/token.js:/usr/local/share/jupyterhub/static/js/token.js:ro
+      - ./server/js/home.js:/usr/local/share/jupyterhub/static/js/home.js:ro
+      - ./server/customnativeauthenticator:/app/customnativeauthenticator:ro
+      - ./server/jupyterhub_config.py:/app/jupyterhub_config.py:ro
+      - ./server/templates:/app/templates:ro
+      - ./server/translation/plugin.json:/usr/local/share/jupyter/lab/schemas/@jupyterlab/translation-extension/plugin.json:ro
+      - jupyter_public_data:/srv/public
+      - jupyter_private_data:/home
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 4G
+    depends_on:
+      - db
+      - compiler
+
+  compiler:
+    build: ./compiler
+    ports:
+      - "5000:5000"
+    restart: on-failure
+    environment:
+      PROCESSES: 4
+    networks:
+      - backend
+
+  db:
+    image: postgres:16.2
+    restart: on-failure
+    volumes:
+      - db_data:/var/lib/postgresql/db_data
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: jupyterhub_db
+      POSTGRES_USER: jupyterhub_admin
+      POSTGRES_PASSWORD: jupyterhub_password
+    networks:
+      - backend
+      - frontend
+
+volumes:
+  db_data:
+  jupyter_public_data:
+  jupyter_private_data:
+
+networks:
+  frontend:
+  backend:
+    internal: true

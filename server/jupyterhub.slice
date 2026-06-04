@@ -1,0 +1,5 @@
+[Slice]
+MemoryAccounting=true
+MemoryMax=4G
+CPUAccounting=true
+CPUQuota=20%

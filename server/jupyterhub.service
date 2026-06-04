@@ -1,0 +1,20 @@
+[Unit]
+Description=JupyterHub
+After=network.target
+
+[Service]
+Type=simple
+Environment="DB_USER=jupyterhub_admin"
+Environment="DB_PASSWORD=jupyterhub_password"
+Environment="DB_HOST=db"
+Environment="DB_PORT=5432"
+Environment="DB_NAME=jupyterhub_db"
+Environment="IP=compiler"
+Environment="PORT=5000"
+ExecStart=/usr/local/bin/jupyterhub --config=/app/jupyterhub_config.py
+Restart=always
+User=root
+WorkingDirectory=/app
+
+[Install]
+WantedBy=multi-user.target

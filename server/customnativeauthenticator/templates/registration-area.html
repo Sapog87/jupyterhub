@@ -1,0 +1,53 @@
+{% extends "page.html" %}
+
+{% block main %}
+<style>
+    #registration_data {
+        width: 50vw;      /* половина ширины экрана */
+        height: 300px;    /* высота textarea */
+        resize: vertical; /* можно растягивать только по вертикали */
+    }
+</style>
+
+<div class="container">
+    <form action="{{post_url}}" method="post" role="form">
+        <h1>
+            Регистрация пользователей
+        </h1>
+
+        <p>
+            Пожалуйста, введите данные пользователей в формате
+            имя_пользователя:пароль (один пользователь — одна строка)
+        </p>
+
+        <input type="hidden" name="_xsrf" value="{{ xsrf }}"/>
+
+        <div class="form-group">
+            <div class="input-group">
+                <textarea
+                    id="registration_data"
+                    name="registration_data"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    class="form-control"
+                ></textarea>
+            </div>
+
+            <p></p>
+
+            <input
+                id="signup_submit"
+                type="submit"
+                value="Зарегистрировать"
+                class="btn btn-jupyter"
+            />
+        </div>
+    </form>
+
+    {% if result_message %}
+        <div class="alert {{alert}}" role="alert">
+            {{result_message}}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

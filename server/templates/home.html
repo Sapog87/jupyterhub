@@ -1,0 +1,86 @@
+{% extends "page.html" %}
+{% if announcement_home is string %}
+{% set announcement = announcement_home %}
+{% endif %}
+{% block main %}
+<div class="container">
+  <h1 class="sr-only">Домашняя страница JupyterHub</h1>
+  <div class="row">
+    <div class="text-center">
+      {% if default_server.active %}<a id="stop" role="button" class="btn btn-lg btn-danger">Остановить мой сервер</a>{%
+      endif
+      %}
+      <a id="start" role="button" class="btn btn-lg btn-primary" href="{{ url }}">
+        {% if not default_server.active %}Запустить{% endif %}
+        мой сервер
+      </a>
+    </div>
+  </div>
+  {% if allow_named_servers %}
+  <h2>Именованные серверы</h2>
+  <p>
+    В дополнение к вашему основному серверу
+    вы можете создать дополнительные
+    {% if named_server_limit_per_user > 0 %}{{ named_server_limit_per_user }}{% endif %}
+    сервер(а) с именами.
+    Это позволяет запускать несколько серверов одновременно.
+  </p>
+  {% set named_spawners = user.all_spawners(include_default=False)|list %}
+  <table class="server-table table table-striped">
+    <thead>
+      <tr>
+        <th>Имя сервера</th>
+        <th>URL</th>
+        <th>Последняя активность</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="home-server-row add-server-row">
+        <td colspan="4">
+          <div class="input-group">
+            <input class="new-server-name form-control" aria-label="server name" placeholder="name-your-server">
+            <button role="button" type="button" class="new-server-btn btn btn-xs btn-primary">Добавить новый
+              сервер</button>
+          </div>
+        </td>
+      </tr>
+      {% for spawner in named_spawners %}
+      <tr class="home-server-row" data-server-name="{{ spawner.name }}">
+        {# name #}
+        <td>{{ spawner.name }}</td>
+        {# url #}
+        <td>
+          <a class="server-link {% if not spawner.ready %}hidden{% endif %}"
+            href="{{ user.server_url(spawner.name) }}">{{ user.server_url(spawner.name) }}</a>
+        </td>
+        {# activity #}
+        <td class='time-col'>
+          {% if spawner.last_activity %}
+          {{ spawner.last_activity.isoformat() + 'Z' }}
+          {% else %}
+          Никогда
+          {% endif %}
+        </td>
+        {# actions #}
+        <td>
+          <a role="button" class="stop-server btn btn-xs btn-danger{% if not spawner.active %} hidden{% endif %}"
+            id="stop-{{ spawner.name }}">остановить</a>
+          <a role="button" class="start-server btn btn-xs btn-primary {% if spawner.active %}hidden{% endif %}"
+            id="start-{{ spawner.name }}" href="{{ base_url }}spawn/{{ user.name }}/{{ spawner.name }}">запустить</a>
+          <button role="button" class="delete-server btn btn-xs btn-danger{% if spawner.active %} hidden{% endif %}"
+            id="delete-{{ spawner.name }}">удалить</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock main %}
+{% block script %}
+{{ super() }}
+<script type="text/javascript">
+  require(["home"]);
+</script>
+{% endblock script %}

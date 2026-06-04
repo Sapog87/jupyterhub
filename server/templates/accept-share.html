@@ -1,0 +1,54 @@
+{% extends "page.html" %}
+{% block login_widget %}
+{% endblock login_widget %}
+{% block main %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h1 class="text-center">Принять приглашение к совместному использованию</h1>
+      <p class="lead">
+        Вас ({{ user.name }}) пригласили получить доступ к серверу {{ owner.name }}
+        {%- if spawner.name %}({{ spawner.name }}){%- endif %} по адресу
+        <a href="{{ spawner_url | safe }}">{{ spawner_url }}</a>.
+      </p>
+      {% if not spawner_ready %}
+      <p class="alert alert-danger">
+        Сервер по адресу {{ spawner_url }} в данный момент не запущен.
+        После принятия разрешения вам может потребоваться попросить {{ owner.name }}
+        запустить сервер, чтобы получить к нему доступ.
+      </p>
+      {% endif %}
+      <form method="post" action="">
+        <div class="card">
+          <div class="card-header">
+            Приняв приглашение, вы получите следующие разрешения,
+            ограниченные этим конкретным сервером:
+          </div>
+          <div class="card-body">
+            {# это 'реальные' входные данные формы -#}
+            <input type="hidden" name="_xsrf" value="{{ xsrf }}" />
+            <input type="hidden" name="code" value="{{ code }}" />
+            {% for scope_info in scope_descriptions -%}
+            <div class="form-check input-group">
+              <label>
+                <span>
+                  {{ scope_info['description'] }}
+                  {% if scope_info['filter'] %}Applies to {{ scope_info['filter'] }}.{% endif %}
+                </span>
+              </label>
+            </div>
+            {% endfor -%}
+          </div>
+          <div class="card-footer">
+            <button type="submit" class="form-control btn btn-jupyter">Accept invitation</button>
+            <p class="small">
+              После принятия приглашения вы будете перенаправлены на
+              <a href="{{ next_url | safe }}">{{ next_url }}</a>.
+            </p>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock main %}

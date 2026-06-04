@@ -1,0 +1,9 @@
+{% extends "page.html" %}
+{% if announcement_logout is string %}
+{% set announcement = announcement_logout %}
+{% endif %}
+{% block main %}
+<div id="logout-main" class="container">
+  <p>Вы успешно вышли из системы.</p>
+</div>
+{% endblock main %}
